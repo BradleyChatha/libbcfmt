@@ -1,0 +1,3 @@
+[submodule "subprojects/libbcds"]
+	path = subprojects/libbcds
+	url = https://github.com/BradleyChatha/libbcds
