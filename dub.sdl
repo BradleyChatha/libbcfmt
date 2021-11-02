@@ -1,0 +1,13 @@
+name "libbcfmt"
+description "A betterC format/conv library"
+authors "Bradley Chatha"
+dependency "libbcds" version="~>0.1.1"
+excludedSourceFiles "source/test.d"
+configuration "default" {
+	targetType "library"
+}
+configuration "betterC" {
+	targetType "library"
+	dflags "-betterC"
+}
+subConfiguration "libbcds" "betterC"
