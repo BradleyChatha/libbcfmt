@@ -2,6 +2,7 @@ name "libbcfmt"
 description "A betterC format/conv library"
 authors "Bradley Chatha"
 dependency "libbcds" version="~>0.1.1"
+license "MIT"
 excludedSourceFiles "source/test.d"
 configuration "default" {
 	targetType "library"
