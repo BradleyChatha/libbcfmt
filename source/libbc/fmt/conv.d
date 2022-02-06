@@ -12,6 +12,8 @@ alias IntToCharBuffer = char[MAX_SIZE_T_STRING_LEN];
 
 private immutable BASE10_CHARS = "0123456789";
 
+@nogc nothrow:
+
 String to(StringT : String, ValueT)(auto ref ValueT value)
 {
     static if(is(ValueT == enum))
