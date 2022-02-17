@@ -107,7 +107,7 @@ if(isArray!ArrayT && isOutputRange!(OutputT, const(char)[]))
     output.put("[");
     foreach(i, ref v; array)
     {
-        output.put(v.to!String.sliceUnsafe);
+        output.put(v.to!String.slice);
         if(i != array.length-1)
             output.put(", ");
     }
