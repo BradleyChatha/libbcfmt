@@ -1,7 +1,7 @@
 module libbc.fmt.conv;
 
 import std.math : abs;
-import std.traits : Unqual;
+import std.traits : Unqual, isArray, EnumMembers;
 import std.range : isOutputRange;
 import libbc.ds.string;
 
@@ -12,9 +12,13 @@ alias IntToCharBuffer = char[MAX_SIZE_T_STRING_LEN];
 
 private immutable BASE10_CHARS = "0123456789";
 
+@nogc nothrow:
+
 String to(StringT : String, ValueT)(auto ref ValueT value)
 {
-    static if(is(ValueT == bool))
+    static if(is(ValueT == enum))
+        return String(enumToString(value));
+    else static if(is(ValueT == bool))
         return value ? String("true") : String("false");
     else static if(__traits(compiles, toBase10(value)))
         return value.toBase10;
@@ -30,16 +34,8 @@ String to(StringT : String, ValueT)(auto ref ValueT value)
         return value;
     else static if(is(ValueT : T[], T))
     {
-        // TEMP
         String str;
-        str.put('[');
-        foreach(element; value)
-        {
-            str.put(element.to!String);
-            str.put(", ");
-        }
-        str.put(']');
-
+        arrayToString(value, str);
         return str;
     }
     else static if(is(ValueT : T*, T))
@@ -67,9 +63,24 @@ unittest
         S s;
     }
 
+    static struct SSS
+    {
+        void toString(OutputT)(ref OutputT output)
+        {
+            output.put("SSS");
+        }
+    }
+
+    enum E
+    {
+        a
+    }
+
     assert(127.to!String == "127");
     assert(S(29, "yolo", true).to!String == `S(29, "yolo", true)`);
     assert(SS("ribena cow", S(69, "swag", false)).to!String == `SS("ribena cow", S(69, "swag", false))`);
+    assert(SSS().to!String == "SSS");
+    assert(E.a.to!String == "a");
 }
 
 NumT to(NumT, ValueT)(ValueT value, out string error)
@@ -90,43 +101,76 @@ unittest
     assert(String("-120").to!byte(err) == -120);
 }
 
-EnumT to(EnumT, ValueT)(ValueT value)
-if(is(EnumT == enum))
+private void arrayToString(ArrayT, OutputT)(ArrayT array, ref OutputT output)
+if(isArray!ArrayT && isOutputRange!(OutputT, const(char)[]))
 {
-    import libd.data.foramt;
-    switch(value)
+    output.put("[");
+    foreach(i, ref v; array)
     {
-        static foreach(name; __traits(allMembers, EnumT))
-            case mixin("cast(ValueT)EnumT."~name): return mixin("EnumT."~name);
-
-        default:
-            return typeof(return)(raise("Value '{0}' does not belong to enum {1}.".format(value, EnumT.stringof)));
+        output.put(v.to!String.sliceUnsafe);
+        if(i != array.length-1)
+            output.put(", ");
     }
+    output.put("]");
+}
+@("array to!String")
+unittest
+{
+    int[3] array = [1, 2, 3];
+    auto str = array[].to!String();
+    assert(str == "[1, 2, 3]");
 }
 
 private void structToString(StructT, OutputT)(auto ref StructT value, ref OutputT output)
 if(is(StructT == struct) && isOutputRange!(OutputT, const(char)[]))
 {
-    output.put(__traits(identifier, StructT));
-    output.put("(");
-    foreach(i, ref v; value.tupleof)
-    {{
-        static if(is(typeof(v) : const(char)[]) || is(typeof(v) == String))
-        {
-            output.put("\"");
-            output.put(v);
-            output.put("\"");
-        }
-        else
-        {
-            String s = to!String(v);
-            output.put(s.range);
-        }
+    static if(__traits(hasMember, StructT, "toString"))
+    {
+        value.toString(output);
+    }
+    else
+    {
+        output.put(__traits(identifier, StructT));
+        output.put("(");
+        foreach(i, ref v; value.tupleof)
+        {{
+            static if(is(typeof(v) : const(char)[]) || is(typeof(v) == String))
+            {
+                output.put("\"");
+                output.put(v);
+                output.put("\"");
+            }
+            else
+            {
+                String s = to!String(v);
+                output.put(s.range);
+            }
 
-        static if(i < StructT.tupleof.length-1)
-            output.put(", ");
-    }}
-    output.put(")");
+            static if(i < StructT.tupleof.length-1)
+                output.put(", ");
+        }}
+        output.put(")");
+    }
+}
+
+string enumToString(EnumT)(EnumT value)
+{
+    final switch(value)
+    {
+        static foreach(i, member; EnumMembers!EnumT)
+            case member:
+                return __traits(allMembers, EnumT)[i];
+    }
+}
+@("enumToString")
+unittest
+{
+    enum E
+    {
+        a, b, c
+    }
+
+    assert(E.b.enumToString == "b");
 }
 
 String toBase10(NumT)(NumT num)

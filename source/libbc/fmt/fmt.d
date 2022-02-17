@@ -19,6 +19,8 @@ private struct FormatSegment
     }
 }
 
+@nogc nothrow:
+
 String format(Args...)(out string error, const char[] fmt, Args args)
 {
     size_t cursor;
